@@ -8,7 +8,8 @@ data class ChatMessage(
     val id: String,
     val content: String,
     val role: MessageRole,
-    val timestamp: Instant
+    val timestamp: Instant,
+    val tokenUsage: TokenUsage? = null
 )
 
 @Serializable
@@ -17,3 +18,15 @@ enum class MessageRole {
     ASSISTANT,
     SYSTEM
 }
+
+@Serializable
+data class TokenUsage(
+    val promptTokens: Int,
+    val responseTokens: Int,
+    val totalTokens: Int
+)
+
+data class GeminiContentResponse(
+    val content: String,
+    val tokenUsage: TokenUsage?
+)

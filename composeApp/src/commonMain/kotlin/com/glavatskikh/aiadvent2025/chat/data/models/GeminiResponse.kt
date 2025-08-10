@@ -5,15 +5,17 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class GeminiResponse(
     val candidates: List<Candidate>,
-    val promptFeedback: PromptFeedback? = null
+    val promptFeedback: PromptFeedback? = null,
+    val usageMetadata: UsageMetadata? = null
 )
 
 @Serializable
 data class Candidate(
     val content: Content,
     val finishReason: String? = null,
-    val index: Int,
-    val safetyRatings: List<SafetyRating>? = null
+    val index: Int? = null,
+    val safetyRatings: List<SafetyRating>? = null,
+    val avgLogprobs: Double? = null
 )
 
 @Serializable
@@ -37,4 +39,11 @@ data class ErrorDetails(
     val code: Int,
     val message: String,
     val status: String
+)
+
+@Serializable
+data class UsageMetadata(
+    val promptTokenCount: Int,
+    val candidatesTokenCount: Int,
+    val totalTokenCount: Int
 )

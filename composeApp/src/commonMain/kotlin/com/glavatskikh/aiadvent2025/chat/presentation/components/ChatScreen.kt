@@ -1,16 +1,44 @@
 package com.glavatskikh.aiadvent2025.chat.presentation.components
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.glavatskikh.aiadvent2025.chat.data.models.MessageRole
 import com.glavatskikh.aiadvent2025.chat.presentation.ChatViewModel
-import kotlinx.coroutines.launch
+import com.glavatskikh.aiadvent2025.theme.LocalThemeManager
+import com.glavatskikh.aiadvent2025.theme.ThemeMode
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -31,13 +60,13 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    
+
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
-    
+
     Scaffold(
         topBar = {
             ChatTopBar(
@@ -58,48 +87,48 @@ fun ChatScreen(
                     .widthIn(max = 900.dp)
                     .padding(horizontal = 16.dp)
             ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    items = uiState.messages,
-                    key = { it.id }
-                ) { message ->
-                    MessageBubble(
-                        message = message,
-                        modifier = Modifier.animateItem()
-                    )
-                }
-                
-                if (uiState.isLoading) {
-                    item {
-                        LoadingIndicator()
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        items = uiState.messages,
+                        key = { it.id }
+                    ) { message ->
+                        MessageBubble(
+                            message = message,
+                            modifier = Modifier.animateItem()
+                        )
+                    }
+
+                    if (uiState.isLoading) {
+                        item {
+                            LoadingIndicator()
+                        }
                     }
                 }
-            }
-            
-            uiState.errorMessage?.let { error ->
-                ErrorMessage(
-                    message = error,
-                    onDismiss = viewModel::dismissError
+
+                uiState.errorMessage?.let { error ->
+                    ErrorMessage(
+                        message = error,
+                        onDismiss = viewModel::dismissError
+                    )
+                }
+
+                ChatInputSection(
+                    inputText = uiState.inputText,
+                    onInputChange = viewModel::updateInputText,
+                    onSendClick = viewModel::sendMessage,
+                    isLoading = uiState.isLoading,
+                    selectedModel = uiState.selectedModel,
+                    availableModels = uiState.availableModels,
+                    onModelSelect = viewModel::selectModel,
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-            
-            ChatInputSection(
-                inputText = uiState.inputText,
-                onInputChange = viewModel::updateInputText,
-                onSendClick = viewModel::sendMessage,
-                isLoading = uiState.isLoading,
-                selectedModel = uiState.selectedModel,
-                availableModels = uiState.availableModels,
-                onModelSelect = viewModel::selectModel,
-                modifier = Modifier.fillMaxWidth()
-            )
             }
         }
     }
@@ -111,9 +140,24 @@ fun ChatTopBar(
     onClearChat: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val themeManager = LocalThemeManager.current
+    val isDarkTheme = themeManager.isDarkTheme()
+
     TopAppBar(
         title = { Text("Gemini AI Chat") },
         actions = {
+            IconButton(
+                onClick = {
+                    val nextMode = if (isDarkTheme) ThemeMode.LIGHT else ThemeMode.DARK
+                    themeManager.setThemeMode(nextMode)
+                }
+            ) {
+                val icon = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode
+                Icon(
+                    imageVector = icon,
+                    contentDescription = if (isDarkTheme) "Dark Mode" else "Light Mode"
+                )
+            }
             IconButton(onClick = onClearChat) {
                 Icon(Icons.Default.Delete, contentDescription = "Clear Chat")
             }
@@ -133,14 +177,14 @@ fun MessageBubble(
     } else {
         MaterialTheme.colorScheme.secondaryContainer
     }
-    
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 280.dp)
+                .widthIn(max = 400.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(backgroundColor)
                 .padding(12.dp)
@@ -153,18 +197,32 @@ fun MessageBubble(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
+                ChatMarkdownText(
                     text = message.content,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = message.timestamp
-                        .toLocalDateTime(TimeZone.currentSystemDefault())
-                        .time.toString().substringBeforeLast(":"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = message.timestamp
+                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                            .time.toString().substringBeforeLast(":"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    message.tokenUsage?.let { usage ->
+                        Text(
+                            text = "${usage.totalTokens} tokens",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
         }
     }

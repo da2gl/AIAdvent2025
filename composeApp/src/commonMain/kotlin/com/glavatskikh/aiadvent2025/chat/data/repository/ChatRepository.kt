@@ -2,7 +2,7 @@ package com.glavatskikh.aiadvent2025.chat.data.repository
 
 import com.glavatskikh.aiadvent2025.chat.data.ApiConfig
 import com.glavatskikh.aiadvent2025.chat.data.models.*
-import com.glavatskikh.aiadvent2025.chat.data.network.GeminiApiClient
+import com.glavatskikh.aiadvent2025.chat.data.services.GeminiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +28,7 @@ class ChatRepositoryImpl : ChatRepository {
     private val _currentModel = MutableStateFlow(GeminiModel.GEMINI_1_5_FLASH)
     override val currentModel: StateFlow<GeminiModel> = _currentModel.asStateFlow()
     
-    private val apiClient = GeminiApiClient(ApiConfig.GEMINI_API_KEY)
+    private val geminiService = GeminiService(ApiConfig.GEMINI_API_KEY)
     
     override suspend fun sendMessage(message: String): Result<ChatMessage> {
         if (ApiConfig.GEMINI_API_KEY == "YOUR_API_KEY_HERE") {
@@ -49,7 +49,7 @@ class ChatRepositoryImpl : ChatRepository {
         val conversationHistory = buildConversationHistory()
         
         return try {
-            val result = apiClient.generateContent(
+            val result = geminiService.generateContent(
                 prompt = message,
                 model = _currentModel.value,
                 conversationHistory = conversationHistory
@@ -59,9 +59,10 @@ class ChatRepositoryImpl : ChatRepository {
                 onSuccess = { response ->
                     val assistantMessage = ChatMessage(
                         id = generateMessageId(),
-                        content = response,
+                        content = response.content,
                         role = MessageRole.ASSISTANT,
-                        timestamp = Clock.System.now()
+                        timestamp = Clock.System.now(),
+                        tokenUsage = response.tokenUsage
                     )
                     _messages.value = _messages.value + assistantMessage
                     _isLoading.value = false
