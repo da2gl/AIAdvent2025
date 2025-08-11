@@ -3,6 +3,7 @@ package com.glavatskikh.aiadvent2025.chat.data.repository
 import com.glavatskikh.aiadvent2025.chat.data.ApiConfig
 import com.glavatskikh.aiadvent2025.chat.data.models.*
 import com.glavatskikh.aiadvent2025.chat.data.services.GeminiService
+import com.glavatskikh.aiadvent2025.chat.domain.prompt.PromptManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,9 @@ interface ChatRepository {
     fun clearMessages()
 }
 
-class ChatRepositoryImpl : ChatRepository {
+class ChatRepositoryImpl(
+    private val promptManager: PromptManager
+) : ChatRepository {
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     override val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
     
@@ -47,12 +50,14 @@ class ChatRepositoryImpl : ChatRepository {
         _messages.value = _messages.value + userMessage
         
         val conversationHistory = buildConversationHistory()
+        val systemInstruction = promptManager.getActivePrompt()
         
         return try {
             val result = geminiService.generateContent(
                 prompt = message,
                 model = _currentModel.value,
-                conversationHistory = conversationHistory
+                conversationHistory = conversationHistory,
+                systemInstruction = systemInstruction
             )
             
             result.fold(

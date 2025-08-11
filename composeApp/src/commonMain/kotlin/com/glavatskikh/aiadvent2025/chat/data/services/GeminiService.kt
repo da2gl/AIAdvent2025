@@ -14,11 +14,12 @@ class GeminiService(
     suspend fun generateContent(
         prompt: String,
         model: GeminiModel = GeminiModel.GEMINI_1_5_FLASH,
-        conversationHistory: List<Content> = emptyList()
+        conversationHistory: List<Content> = emptyList(),
+        systemInstruction: String? = null
     ): Result<GeminiContentResponse> {
         return try {
             val url = buildUrl(model)
-            val request = buildRequest(prompt, conversationHistory)
+            val request = buildRequest(prompt, conversationHistory, systemInstruction)
             val headers = buildHeaders()
             
             val response = httpClient.post(url, request, headers)
@@ -43,7 +44,7 @@ class GeminiService(
         )
     }
     
-    private fun buildRequest(prompt: String, conversationHistory: List<Content>): GeminiRequest {
+    private fun buildRequest(prompt: String, conversationHistory: List<Content>, systemInstruction: String?): GeminiRequest {
         val contents = buildContents(prompt, conversationHistory)
         
         return GeminiRequest(
@@ -53,7 +54,10 @@ class GeminiService(
                 topK = 40,
                 topP = 0.95f,
                 maxOutputTokens = 2048
-            )
+            ),
+            systemInstruction = systemInstruction?.let {
+                SystemInstruction(parts = listOf(Part(text = it)))
+            }
         )
     }
     

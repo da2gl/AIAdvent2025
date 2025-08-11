@@ -82,6 +82,35 @@ private fun parseMarkdownToBlocks(input: String): List<Block> {
             if (i < lines.size) i++
             continue
         }
+        
+        // Auto-detect XML/HTML content
+        if (line.trim().startsWith("<?xml") || line.trim().startsWith("<html") || 
+            (line.trim().startsWith("<") && line.trim().endsWith(">") && 
+             (line.contains("=\"") || line.contains("='/")))) {
+            val xmlLines = mutableListOf<String>()
+            // Collect all XML lines until we hit a non-XML line
+            while (i < lines.size) {
+                val currentLine = lines[i].trim()
+                if (currentLine.isEmpty() && xmlLines.isNotEmpty() && 
+                    lines.getOrNull(i + 1)?.trim()?.startsWith("<") != true) {
+                    break
+                }
+                if (currentLine.isNotEmpty() || (xmlLines.isNotEmpty() && i + 1 < lines.size && 
+                    lines[i + 1].trim().startsWith("<"))) {
+                    xmlLines += lines[i]
+                }
+                i++
+                // Check if we've reached the end of XML content
+                if (currentLine.endsWith("</response>") || currentLine.endsWith("</html>") ||
+                    currentLine.endsWith("</root>")) {
+                    break
+                }
+            }
+            if (xmlLines.isNotEmpty()) {
+                blocks += Block.CodeBlock("xml", xmlLines.joinToString("\n"))
+            }
+            continue
+        }
 
         // Heading (#, ##, ###...)
         val headingMatch = Regex("""^(#{1,6})\s+(.*)$""").matchEntire(line)
@@ -260,17 +289,11 @@ fun ChatMarkdownText(
                 }
 
                 is Block.CodeBlock -> {
-                    Text(
-                        text = block.code,
-                        style = style.copy(fontFamily = FontFamily.Monospace),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp)
+                    CodeBlockComponent(
+                        code = block.code,
+                        language = block.lang,
+                        style = style,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 

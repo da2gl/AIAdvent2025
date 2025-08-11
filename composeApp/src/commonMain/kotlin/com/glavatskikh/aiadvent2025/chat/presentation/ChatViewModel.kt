@@ -6,6 +6,8 @@ import com.glavatskikh.aiadvent2025.chat.data.models.ChatMessage
 import com.glavatskikh.aiadvent2025.chat.data.models.GeminiModel
 import com.glavatskikh.aiadvent2025.chat.data.repository.ChatRepository
 import com.glavatskikh.aiadvent2025.chat.data.repository.ChatRepositoryImpl
+import com.glavatskikh.aiadvent2025.chat.data.repository.PromptManagerImpl
+import com.glavatskikh.aiadvent2025.chat.domain.prompt.PromptManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -15,12 +17,14 @@ data class ChatUiState(
     val inputText: String = "",
     val selectedModel: GeminiModel = GeminiModel.GEMINI_1_5_FLASH,
     val availableModels: List<GeminiModel> = GeminiModel.entries,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isPromptEditorOpen: Boolean = false,
+    val isUsingCustomPrompt: Boolean = false
 )
 
-class ChatViewModel(
-    private val repository: ChatRepository = ChatRepositoryImpl()
-) : ViewModel() {
+class ChatViewModel : ViewModel() {
+    val promptManager: PromptManager = PromptManagerImpl()
+    private val repository: ChatRepository = ChatRepositoryImpl(promptManager)
     
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -30,12 +34,14 @@ class ChatViewModel(
             combine(
                 repository.messages,
                 repository.isLoading,
-                repository.currentModel
-            ) { messages, isLoading, model ->
+                repository.currentModel,
+                promptManager.currentPromptConfig
+            ) { messages, isLoading, model, promptConfig ->
                 _uiState.value.copy(
                     messages = messages,
                     isLoading = isLoading,
-                    selectedModel = model
+                    selectedModel = model,
+                    isUsingCustomPrompt = !promptConfig.isDefault
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -77,5 +83,13 @@ class ChatViewModel(
     
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+    
+    fun openPromptEditor() {
+        _uiState.update { it.copy(isPromptEditorOpen = true) }
+    }
+    
+    fun closePromptEditor() {
+        _uiState.update { it.copy(isPromptEditorOpen = false) }
     }
 }

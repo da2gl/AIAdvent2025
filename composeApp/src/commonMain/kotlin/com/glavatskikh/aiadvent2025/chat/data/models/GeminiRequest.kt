@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 data class GeminiRequest(
     val contents: List<Content>,
     val generationConfig: GenerationConfig? = null,
-    val safetySettings: List<SafetySetting>? = null
+    val safetySettings: List<SafetySetting>? = null,
+    val systemInstruction: SystemInstruction? = null
 )
 
 @Serializable
@@ -33,4 +34,9 @@ data class GenerationConfig(
 data class SafetySetting(
     val category: String,
     val threshold: String
+)
+
+@Serializable
+data class SystemInstruction(
+    val parts: List<Part>
 )
