@@ -11,9 +11,4 @@ enum class GeminiModel(
     GEMINI_1_5_FLASH("gemini-1.5-flash", "Gemini 1.5 Flash", 1048576),
     GEMINI_1_5_FLASH_8B("gemini-1.5-flash-8b", "Gemini 1.5 Flash 8B", 1048576),
     GEMINI_2_0_FLASH_EXP("gemini-2.0-flash-exp", "Gemini 2.0 Flash (Experimental)", 1048576);
-
-    companion object {
-        fun fromModelName(name: String): GeminiModel? =
-            entries.find { it.modelName == name }
-    }
 }

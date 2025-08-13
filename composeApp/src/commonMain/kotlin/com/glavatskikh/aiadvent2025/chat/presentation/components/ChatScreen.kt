@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,7 +38,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,8 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.glavatskikh.aiadvent2025.chat.data.models.MessageRole
 import com.glavatskikh.aiadvent2025.chat.presentation.ChatViewModel
-import com.glavatskikh.aiadvent2025.chat.presentation.prompt.PromptEditorDialog
-import com.glavatskikh.aiadvent2025.chat.presentation.prompt.PromptEditorViewModel
 import com.glavatskikh.aiadvent2025.theme.LocalThemeManager
 import com.glavatskikh.aiadvent2025.theme.ThemeMode
 import kotlinx.datetime.TimeZone
@@ -62,32 +58,17 @@ fun ChatScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-    val promptEditorViewModel = viewModel<PromptEditorViewModel> {
-        PromptEditorViewModel(viewModel.promptManager)
-    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
-    
-    if (uiState.isPromptEditorOpen) {
-        LaunchedEffect(Unit) {
-            promptEditorViewModel.openEditor()
-        }
-        PromptEditorDialog(
-            viewModel = promptEditorViewModel,
-            onDismiss = viewModel::closePromptEditor
-        )
-    }
 
     Scaffold(
         topBar = {
             ChatTopBar(
                 onClearChat = viewModel::clearChat,
-                onConfigurePrompt = viewModel::openPromptEditor
             )
         },
         modifier = modifier
@@ -155,7 +136,6 @@ fun ChatScreen(
 @Composable
 fun ChatTopBar(
     onClearChat: () -> Unit,
-    onConfigurePrompt: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val themeManager = LocalThemeManager.current
@@ -164,14 +144,6 @@ fun ChatTopBar(
     TopAppBar(
         title = { Text("Gemini AI Chat") },
         actions = {
-            IconButton(
-                onClick = onConfigurePrompt
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Configure Prompt"
-                )
-            }
             IconButton(
                 onClick = {
                     val nextMode = if (isDarkTheme) ThemeMode.LIGHT else ThemeMode.DARK
@@ -217,7 +189,11 @@ fun MessageBubble(
         ) {
             Column {
                 Text(
-                    text = if (isUser) "You" else "Gemini",
+                    text = when {
+                        isUser -> "You"
+                        message.agentName != null -> message.agentName
+                        else -> "Gemini"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -240,7 +216,7 @@ fun MessageBubble(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     message.tokenUsage?.let { usage ->
                         Text(
                             text = "${usage.totalTokens} tokens",

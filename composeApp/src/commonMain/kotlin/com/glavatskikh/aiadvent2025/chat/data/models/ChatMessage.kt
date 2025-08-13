@@ -9,7 +9,8 @@ data class ChatMessage(
     val content: String,
     val role: MessageRole,
     val timestamp: Instant,
-    val tokenUsage: TokenUsage? = null
+    val tokenUsage: TokenUsage? = null,
+    val agentName: String? = null
 )
 
 @Serializable

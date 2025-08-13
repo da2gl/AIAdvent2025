@@ -1,13 +1,23 @@
 package com.glavatskikh.aiadvent2025.core.network
 
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.DEFAULT
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 class HttpApiClient {
@@ -19,23 +29,23 @@ class HttpApiClient {
                 ignoreUnknownKeys = true
             })
         }
-        
+
         install(Logging) {
             logger = Logger.DEFAULT
             level = LogLevel.INFO
         }
-        
+
         install(HttpTimeout) {
             requestTimeoutMillis = 60000
             connectTimeoutMillis = 30000
             socketTimeoutMillis = 60000
         }
-        
+
         defaultRequest {
             contentType(ContentType.Application.Json)
         }
     }
-    
+
     suspend fun post(
         url: String,
         body: Any,
@@ -48,7 +58,7 @@ class HttpApiClient {
             }
         }
     }
-    
+
     suspend fun get(
         url: String,
         headers: Map<String, String> = emptyMap()
@@ -59,7 +69,7 @@ class HttpApiClient {
             }
         }
     }
-    
+
     suspend fun put(
         url: String,
         body: Any,
@@ -72,7 +82,7 @@ class HttpApiClient {
             }
         }
     }
-    
+
     suspend fun delete(
         url: String,
         headers: Map<String, String> = emptyMap()
@@ -83,7 +93,7 @@ class HttpApiClient {
             }
         }
     }
-    
+
     fun close() {
         httpClient.close()
     }

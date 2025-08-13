@@ -82,27 +82,31 @@ private fun parseMarkdownToBlocks(input: String): List<Block> {
             if (i < lines.size) i++
             continue
         }
-        
+
         // Auto-detect XML/HTML content
-        if (line.trim().startsWith("<?xml") || line.trim().startsWith("<html") || 
-            (line.trim().startsWith("<") && line.trim().endsWith(">") && 
-             (line.contains("=\"") || line.contains("='/")))) {
+        if (line.trim().startsWith("<?xml") || line.trim().startsWith("<html") ||
+            (line.trim().startsWith("<") && line.trim().endsWith(">") &&
+                    (line.contains("=\"") || line.contains("='/")))
+        ) {
             val xmlLines = mutableListOf<String>()
             // Collect all XML lines until we hit a non-XML line
             while (i < lines.size) {
                 val currentLine = lines[i].trim()
-                if (currentLine.isEmpty() && xmlLines.isNotEmpty() && 
-                    lines.getOrNull(i + 1)?.trim()?.startsWith("<") != true) {
+                if (currentLine.isEmpty() && xmlLines.isNotEmpty() &&
+                    lines.getOrNull(i + 1)?.trim()?.startsWith("<") != true
+                ) {
                     break
                 }
-                if (currentLine.isNotEmpty() || (xmlLines.isNotEmpty() && i + 1 < lines.size && 
-                    lines[i + 1].trim().startsWith("<"))) {
+                if (currentLine.isNotEmpty() || (xmlLines.isNotEmpty() && i + 1 < lines.size &&
+                            lines[i + 1].trim().startsWith("<"))
+                ) {
                     xmlLines += lines[i]
                 }
                 i++
                 // Check if we've reached the end of XML content
                 if (currentLine.endsWith("</response>") || currentLine.endsWith("</html>") ||
-                    currentLine.endsWith("</root>")) {
+                    currentLine.endsWith("</root>")
+                ) {
                     break
                 }
             }

@@ -1,16 +1,26 @@
 package com.glavatskikh.aiadvent2025.chat.data.services
 
-import com.glavatskikh.aiadvent2025.chat.data.models.*
+import com.glavatskikh.aiadvent2025.chat.data.ApiConfig
+import com.glavatskikh.aiadvent2025.chat.data.models.Content
+import com.glavatskikh.aiadvent2025.chat.data.models.GeminiContentResponse
+import com.glavatskikh.aiadvent2025.chat.data.models.GeminiError
+import com.glavatskikh.aiadvent2025.chat.data.models.GeminiModel
+import com.glavatskikh.aiadvent2025.chat.data.models.GeminiRequest
+import com.glavatskikh.aiadvent2025.chat.data.models.GeminiResponse
+import com.glavatskikh.aiadvent2025.chat.data.models.GenerationConfig
+import com.glavatskikh.aiadvent2025.chat.data.models.Part
+import com.glavatskikh.aiadvent2025.chat.data.models.SystemInstruction
+import com.glavatskikh.aiadvent2025.chat.data.models.TokenUsage
 import com.glavatskikh.aiadvent2025.core.network.HttpApiClient
-import io.ktor.client.call.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.ktor.client.call.body
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.HttpStatusCode
 
 class GeminiService(
-    private val apiKey: String,
+    private val apiKey: String = ApiConfig.GEMINI_API_KEY,
     private val httpClient: HttpApiClient = HttpApiClient()
 ) {
-    
+
     suspend fun generateContent(
         prompt: String,
         model: GeminiModel = GeminiModel.GEMINI_1_5_FLASH,
@@ -21,9 +31,9 @@ class GeminiService(
             val url = buildUrl(model)
             val request = buildRequest(prompt, conversationHistory, systemInstruction)
             val headers = buildHeaders()
-            
+
             val response = httpClient.post(url, request, headers)
-            
+
             when (response.status) {
                 HttpStatusCode.OK -> parseSuccessResponse(response)
                 else -> parseErrorResponse(response)
@@ -32,21 +42,25 @@ class GeminiService(
             Result.failure(e)
         }
     }
-    
+
     private fun buildUrl(model: GeminiModel): String {
         return "https://generativelanguage.googleapis.com/v1beta/models/${model.modelName}:generateContent"
     }
-    
+
     private fun buildHeaders(): Map<String, String> {
         return mapOf(
             "x-goog-api-key" to apiKey,
             "Content-Type" to "application/json"
         )
     }
-    
-    private fun buildRequest(prompt: String, conversationHistory: List<Content>, systemInstruction: String?): GeminiRequest {
+
+    private fun buildRequest(
+        prompt: String,
+        conversationHistory: List<Content>,
+        systemInstruction: String?
+    ): GeminiRequest {
         val contents = buildContents(prompt, conversationHistory)
-        
+
         return GeminiRequest(
             contents = contents,
             generationConfig = GenerationConfig(
@@ -60,7 +74,7 @@ class GeminiService(
             }
         )
     }
-    
+
     private fun buildContents(prompt: String, conversationHistory: List<Content>): List<Content> {
         val contents = mutableListOf<Content>()
         contents.addAll(conversationHistory)
@@ -72,12 +86,12 @@ class GeminiService(
         )
         return contents
     }
-    
+
     private suspend fun parseSuccessResponse(response: HttpResponse): Result<GeminiContentResponse> {
         return try {
             val geminiResponse: GeminiResponse = response.body()
             val content = extractContent(geminiResponse)
-            
+
             if (content != null) {
                 val tokenUsage = extractTokenUsage(geminiResponse)
                 val contentResponse = GeminiContentResponse(
@@ -92,7 +106,7 @@ class GeminiService(
             Result.failure(Exception("Failed to parse response: ${e.message}", e))
         }
     }
-    
+
     private suspend fun parseErrorResponse(response: HttpResponse): Result<GeminiContentResponse> {
         return try {
             val errorResponse: GeminiError = response.body()
@@ -101,7 +115,7 @@ class GeminiService(
             Result.failure(Exception("HTTP ${response.status.value}: ${response.status.description}"))
         }
     }
-    
+
     private fun extractContent(geminiResponse: GeminiResponse): String? {
         return geminiResponse.candidates
             .firstOrNull()
@@ -110,7 +124,7 @@ class GeminiService(
             ?.firstOrNull()
             ?.text
     }
-    
+
     private fun extractTokenUsage(geminiResponse: GeminiResponse): TokenUsage? {
         return geminiResponse.usageMetadata?.let { usage ->
             TokenUsage(
@@ -120,7 +134,7 @@ class GeminiService(
             )
         }
     }
-    
+
     fun close() {
         httpClient.close()
     }
