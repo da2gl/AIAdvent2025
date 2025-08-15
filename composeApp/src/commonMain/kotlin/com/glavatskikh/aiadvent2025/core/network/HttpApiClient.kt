@@ -27,6 +27,7 @@ class HttpApiClient {
                 prettyPrint = true
                 isLenient = true
                 ignoreUnknownKeys = true
+                encodeDefaults = true
             })
         }
 

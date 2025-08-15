@@ -2,6 +2,7 @@ package com.glavatskikh.aiadvent2025.chat.data.services
 
 import com.glavatskikh.aiadvent2025.chat.data.ApiConfig
 import com.glavatskikh.aiadvent2025.chat.data.models.Content
+import com.glavatskikh.aiadvent2025.chat.data.models.FunctionCall
 import com.glavatskikh.aiadvent2025.chat.data.models.GeminiContentResponse
 import com.glavatskikh.aiadvent2025.chat.data.models.GeminiError
 import com.glavatskikh.aiadvent2025.chat.data.models.GeminiModel
@@ -11,6 +12,8 @@ import com.glavatskikh.aiadvent2025.chat.data.models.GenerationConfig
 import com.glavatskikh.aiadvent2025.chat.data.models.Part
 import com.glavatskikh.aiadvent2025.chat.data.models.SystemInstruction
 import com.glavatskikh.aiadvent2025.chat.data.models.TokenUsage
+import com.glavatskikh.aiadvent2025.chat.data.models.Tool
+import com.glavatskikh.aiadvent2025.chat.data.models.ToolConfig
 import com.glavatskikh.aiadvent2025.core.network.HttpApiClient
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
@@ -25,12 +28,15 @@ class GeminiService(
         prompt: String,
         model: GeminiModel = GeminiModel.GEMINI_1_5_FLASH,
         conversationHistory: List<Content> = emptyList(),
-        systemInstruction: String? = null
+        systemInstruction: String? = null,
+        tools: List<Tool>? = null,
+        toolConfig: ToolConfig? = null
     ): Result<GeminiContentResponse> {
         return try {
             val url = buildUrl(model)
-            val request = buildRequest(prompt, conversationHistory, systemInstruction)
+            val request = buildRequest(prompt, conversationHistory, systemInstruction, tools, toolConfig)
             val headers = buildHeaders()
+
 
             val response = httpClient.post(url, request, headers)
 
@@ -57,7 +63,9 @@ class GeminiService(
     private fun buildRequest(
         prompt: String,
         conversationHistory: List<Content>,
-        systemInstruction: String?
+        systemInstruction: String?,
+        tools: List<Tool>?,
+        toolConfig: ToolConfig?
     ): GeminiRequest {
         val contents = buildContents(prompt, conversationHistory)
 
@@ -71,7 +79,9 @@ class GeminiService(
             ),
             systemInstruction = systemInstruction?.let {
                 SystemInstruction(parts = listOf(Part(text = it)))
-            }
+            },
+            tools = tools,
+            toolConfig = toolConfig
         )
     }
 
@@ -91,12 +101,14 @@ class GeminiService(
         return try {
             val geminiResponse: GeminiResponse = response.body()
             val content = extractContent(geminiResponse)
+            val functionCall = extractFunctionCall(geminiResponse)
 
-            if (content != null) {
+            if (content != null || functionCall != null) {
                 val tokenUsage = extractTokenUsage(geminiResponse)
                 val contentResponse = GeminiContentResponse(
-                    content = content,
-                    tokenUsage = tokenUsage
+                    content = content ?: "",
+                    tokenUsage = tokenUsage,
+                    functionCall = functionCall
                 )
                 Result.success(contentResponse)
             } else {
@@ -133,6 +145,15 @@ class GeminiService(
                 totalTokens = usage.totalTokenCount
             )
         }
+    }
+
+    private fun extractFunctionCall(geminiResponse: GeminiResponse): FunctionCall? {
+        return geminiResponse.candidates
+            .firstOrNull()
+            ?.content
+            ?.parts
+            ?.firstOrNull()
+            ?.functionCall
     }
 
     fun close() {

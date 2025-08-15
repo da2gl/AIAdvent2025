@@ -29,5 +29,6 @@ data class TokenUsage(
 
 data class GeminiContentResponse(
     val content: String,
-    val tokenUsage: TokenUsage?
+    val tokenUsage: TokenUsage?,
+    val functionCall: FunctionCall? = null
 )

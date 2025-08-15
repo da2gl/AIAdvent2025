@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface Agent {
     val agentId: String
     val agentName: String
-    val systemPrompt: String
+    val systemPrompt: String?
     val messages: StateFlow<List<ChatMessage>>
     val isProcessing: StateFlow<Boolean>
 

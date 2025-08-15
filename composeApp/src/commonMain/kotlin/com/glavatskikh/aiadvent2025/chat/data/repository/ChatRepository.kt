@@ -3,7 +3,7 @@ package com.glavatskikh.aiadvent2025.chat.data.repository
 import com.glavatskikh.aiadvent2025.chat.data.ApiConfig
 import com.glavatskikh.aiadvent2025.chat.data.models.ChatMessage
 import com.glavatskikh.aiadvent2025.chat.data.models.GeminiModel
-import com.glavatskikh.aiadvent2025.chat.domain.workflow.RecipeCreationWorkflow
+import com.glavatskikh.aiadvent2025.chat.domain.workflow.SimpleChatWorkflow
 import com.glavatskikh.aiadvent2025.chat.domain.workflow.Workflow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ interface ChatRepository {
 }
 
 class ChatRepositoryImpl(
-    private val workflow: Workflow = RecipeCreationWorkflow()
+    private val workflow: Workflow = SimpleChatWorkflow()
 ) : ChatRepository {
 
     private val _currentModel = MutableStateFlow(GeminiModel.GEMINI_1_5_FLASH)
